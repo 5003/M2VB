@@ -1,12 +1,32 @@
 @echo off
 setlocal
+set DATETIMESUFFIX=%DATE:/=-%_%TIME::=%
+  set DATETIMESUFFIX=%DATETIMESUFFIX: =0%
+
 set PATH=%~dp0lib;%PATH%
+  REM WIN64
+  if /i "%PROCESSOR_ARCHITECTURE%"=="amd64" set PATH=%~dp0lib\amd64;%PATH%
 set PATH=%VBOX_MSI_INSTALL_PATH%;%PATH%
 
-set BOX_NAME=m2vg_centos_x64
-set BOX_URL=file:///C:/Users/Public/boxes/centos65-x86_64-20140116.box
-set BOX_HEX=84eda9c4f00c86b62509d1007d4f1cf16b86bccb3795659cb56d1ea0007c3adc
+set BOX_HEX=66b7a6b11e040f20e78ce269c8459918fcb1941c938bacc71bbc48eac33b9cdf
 set BOX_HASH=sha256
+
+call :OPTIMIZATION . optimized_only "%~dp0boxes\centos65-x86_64-20131205.box"
+  REM Merge
+  call :OPTIMIZATION "%~dp0vagrant_files" merged "%output_file%"
+
+goto :eof
+
+
+:OPTIMIZATION
+CD /D %1 2>NUL
+
+set BOX_NAME=m2vg_centos_x64
+  set BOX_NAME=%BOX_NAME%_%2
+
+set BOX_URL=%~3
+  REM File Protocol
+  set BOX_URL=file:///%BOX_URL:\=/%
 
 vagrant up
 vagrant halt
@@ -22,7 +42,8 @@ for /f "tokens=2 delims==" %%i in (
   1023856-vdiskmanager-windows-7.0.1 -k %%i
 )
 
-vagrant package --output "%BOX_NAME%_%BOX_UUID:~,7%.box"
+set output_file=%~dp0output\%BOX_NAME%_%DATETIMESUFFIX:~,17%.box
+vagrant package --output "%output_file%"
 vagrant destroy --force
 
-rd /s /q "%~dp0.vagrant"
+rd /s /q "%CD%\.vagrant"
